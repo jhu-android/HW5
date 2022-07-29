@@ -1,19 +1,17 @@
 package hwang.joy.hw5
 
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.lifecycle.ViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.map
 
-class AliensViewModel(viewModelScope: CoroutineScope): ViewModel() {
+class AliensViewModel(): ViewModel() {
 
-    private val alienAlerter = AlienAlerter(viewModelScope)
-    val alertsFlow: Flow<AlienAlert> = flow { alienAlerter.alerts }
+private val alienAlerter = AlienAlerter(viewModelScope)
 
-    suspend fun startAlienReporting() {
-        alienAlerter.startReporting()
-    }
+suspend fun startAlienReporting() {
+    alienAlerter.startReporting()
+}
+
+val alertState = alienAlerter.alerts.map { ImmutableList(it.aliens) }
 
 }

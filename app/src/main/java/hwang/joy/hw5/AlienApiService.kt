@@ -6,11 +6,11 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Path
 
-const val BASE_URL = "http://javadude.com/aliens"
+const val BASE_URL = "http://javadude.com/aliens/"
 
 interface AlienApiService {
     @GET("{n}.json")
-    suspend fun getPosition(@Path("n") n: String): Response<AlienAlert>
+    suspend fun getUfos(@Path("n") n: String): Response<List<UfoPosition>>
 
     companion object {
         fun create(): AlienApiService =

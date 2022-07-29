@@ -1,4 +1,8 @@
 package hwang.joy.hw5
+import androidx.compose.runtime.Immutable
+
+@Immutable
+data class ImmutableList<T>(val list: List<T>): List<T> by list
 
 data class UfoPosition(
     val ship: Int,
@@ -6,4 +10,7 @@ data class UfoPosition(
     val lon: Double,
 )
 
-abstract class AlienAlert: List<UfoPosition>
+class AlienAlert(val aliens: List<UfoPosition> = emptyList())
+
+
+//class AlienAlert(val ufos: List<UfoPosition> = emptyList())
