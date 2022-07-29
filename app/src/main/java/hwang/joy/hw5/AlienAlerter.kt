@@ -1,33 +1,31 @@
 package hwang.joy.hw5
 
-import retrofit2.Response
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.Body
-import retrofit2.http.DELETE
-import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.PUT
-import retrofit2.http.Path
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 
-const val BASE_URL = "http://javadude.com/aliens"
+class AlienAlerter(private val scope: CoroutineScope) {
+//    val alerts = MutableStateFlow(emptyList<UfoPosition>() as AlienAlert)
+    val alerts: Flow<AlienAlert> = flow {
+        for (i in 0..3) {
 
-class AlienAlerter {
+        }
+    }
 
-    @GET("{n}.json")
+    private val alienApiService = AlienApiService.create()
 
     suspend fun startReporting() {
-
+        scope.launch(Dispatchers.IO) {
+            alienApiService.getPosition(n = "1").body()
+//            val ships = alienApiService.getPosition(n = "1").body()
+//            if (ships != null) {
+//                alerts.emit(ships)
+//            }
+        }
     }
 
-
-    companion object {
-        fun create() =
-            Retrofit.Builder()
-                .addConverterFactory(GsonConverterFactory.create())
-                .baseUrl(BASE_URL)
-                .build()
-                .create(AlienAlerter::class.java)
-    }
-
+    suspend fun
 }

@@ -5,3 +5,5 @@ data class UfoPosition(
     val lat: Double,
     val lon: Double,
 )
+
+abstract class AlienAlert: List<UfoPosition>

@@ -36,34 +36,35 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colors.background
                 ) {
 
-                    var mapLoaded by remember { mutableStateOf(false) }
 
-                    val cameraPositionState = rememberCameraPositionState {
-                        position = defaultCameraPosition
-                    }
-
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        GoogleMapView(
-                            cameraPositionState = cameraPositionState,
-                            onMapLoaded = { mapLoaded = true },
-                            modifier = Modifier.fillMaxSize(),
-                            place = googleHQ,
-                        )
-                        if (!mapLoaded) {
-                            AnimatedVisibility(
-                                visible = !mapLoaded,
-                                modifier = Modifier.fillMaxSize(),
-                                enter = EnterTransition.None,
-                                exit = fadeOut(),
-                            ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier
-                                        .background(MaterialTheme.colors.background)
-                                        .wrapContentSize()
-                                )
-                            }
-                        }
-                    }
+//                    var mapLoaded by remember { mutableStateOf(false) }
+//
+//                    val cameraPositionState = rememberCameraPositionState {
+//                        position = defaultCameraPosition
+//                    }
+//
+//                    Box(modifier = Modifier.fillMaxSize()) {
+//                        GoogleMapView(
+//                            cameraPositionState = cameraPositionState,
+//                            onMapLoaded = { mapLoaded = true },
+//                            modifier = Modifier.fillMaxSize(),
+//                            place = googleHQ,
+//                        )
+//                        if (!mapLoaded) {
+//                            AnimatedVisibility(
+//                                visible = !mapLoaded,
+//                                modifier = Modifier.fillMaxSize(),
+//                                enter = EnterTransition.None,
+//                                exit = fadeOut(),
+//                            ) {
+//                                CircularProgressIndicator(
+//                                    modifier = Modifier
+//                                        .background(MaterialTheme.colors.background)
+//                                        .wrapContentSize()
+//                                )
+//                            }
+//                        }
+//                    }
                 }
             }
         }
@@ -94,6 +95,7 @@ fun GoogleMapView(
         delay(3000L)
         onMapLoaded()
     }
+
     GoogleMap(
         cameraPositionState = cameraPositionState,
         uiSettings = mapUiSettings,
