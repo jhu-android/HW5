@@ -18,14 +18,13 @@ class AlienAlerter(private val scope: CoroutineScope) {
     val alerts: Flow<AlienAlert>
         get() = _alerts
 
-    var continuePolling = true
+    private var continuePolling = true
 
-    suspend fun emitUfos(n: Int) {
+    private suspend fun emitUfos(n: Int) {
         val response = alienApiService.getUfos(n.toString())
         if (response.code() == 404) { // more catching errors? TODO
             continuePolling = false
         } else {
-//            Log.d("jhw", response.body().toString())
             response.body()?.let {
                 Log.d("jhw $n", it.toString())
                 _alerts.emit(AlienAlert(it))
@@ -39,7 +38,7 @@ class AlienAlerter(private val scope: CoroutineScope) {
             while (continuePolling) {
                 emitUfos(n)
                 n += 1
-                delay(1000L)
+                delay(2000L)
             }
         }
     }

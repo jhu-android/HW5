@@ -20,6 +20,4 @@ interface AlienApiService {
                 .build()
                 .create(AlienApiService::class.java)
     }
-
-
 }

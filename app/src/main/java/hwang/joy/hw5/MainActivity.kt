@@ -1,23 +1,30 @@
 package hwang.joy.hw5
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
 import hwang.joy.hw5.ui.theme.HW5Theme
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 private val googleHQ = LatLng(37.42423291057923, -122.08811454627153)
 private val defaultCameraPosition = CameraPosition.fromLatLngZoom(googleHQ, 11f)
@@ -72,20 +79,24 @@ class MainActivity : ComponentActivity() {
 fun Ui(
     viewModel: AliensViewModel,
 ) {
-    val alerts by viewModel.alertState.collectAsState(initial = emptyList())
+    val activeUfos by viewModel.activeUfos.collectAsState(initial = emptyList())
+    val pointStore by viewModel.pointStore.collectAsState(initial = mapOf())
+
+    Log.d("cyrano activeUfos", "$activeUfos")
+    Log.d("cyrano pointStore", "$pointStore")
 
     Column(modifier = Modifier.fillMaxSize()) {
         Text(text="ALIENS!!!")
 
         LaunchedEffect(Unit) {
+            Log.d("jhw", "launched effect")
             viewModel.startAlienReporting()
         }
 
-        alerts?.let{
-            alerts.forEach {
-                Text(text="$it")
-            }
+        activeUfos.forEach {
+            Text(text="$it")
         }
+
     }
 }
 
@@ -126,5 +137,21 @@ fun GoogleMapView(
             title = "MARKER yo",
             draggable = true,
         )
+        Polyline(
+            points = listOf(LatLng(37.384374, -122.068712), LatLng(37.42423291057923, -122.08811454627153)),
+            color = Color.Red,
+            width = 8f,
+        )
+        Polyline(
+            points = listOf(LatLng(37.384584, -122.132241), LatLng(37.42423291057923, -122.08811454627153)),
+            color = Color.Blue,
+            width = 8f,
+        )
+
+
+
+
     }
+    
+
 }
