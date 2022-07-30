@@ -54,6 +54,9 @@ class MainActivity : ComponentActivity() {
 fun Ui(
     viewModel: AliensViewModel,
 ) {
+    val alertStore by viewModel.alertStore.collectAsState(initial = emptyList())
+    Log.d("halp", "$alertStore")
+    
     Log.d("mainActivity", "rendering UI")
     val scope = rememberCoroutineScope()
 
@@ -118,7 +121,7 @@ fun GoogleMapView(
     onMapLoaded: () -> Unit,
     modifier: Modifier,
     ufos: List<UfoLatLng>,
-    lines: Map<Int, ImmutableSet<LatLng>>,
+    lines: Map<Int, ImmutableSet<Pair<Long, LatLng>>>,
 ) {
     Log.d("mainActivity", "rendering GoogleMapView")
 
@@ -179,12 +182,12 @@ fun GoogleMapView(
         }
 
         lines.forEach { ufo ->
-            val ufoLines = ufo.value
-            if (ufoLines.size > 1) {
+            if (ufo.value.size > 1) {
+                val ufoLines = ufo.value.map { it.second }
                 Polyline(
-                    points = ufoLines.toList(),
-                    color = Color.Blue,
-                    width = 5f,
+                    points = ufoLines,
+                    color = MaterialTheme.colors.primaryVariant,
+                    width = 10f,
                 )
             }
         }

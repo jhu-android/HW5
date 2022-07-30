@@ -7,11 +7,14 @@ import kotlinx.coroutines.flow.*
 
 class AliensViewModel: ViewModel() {
 
+    private val startTime =  System.currentTimeMillis()
+    private val elapsedTime: () -> Long = {  System.currentTimeMillis() - startTime }
+
     private val alienAlerter = AlienAlerter(viewModelScope)
-    private val alertStore =
-        alienAlerter.alerts.runningFold(mutableListOf<UfoPosition>()) { accumulator, alert ->
+    val alertStore =
+        alienAlerter.alerts.runningFold(mutableListOf<UfoPositionTime>()) { accumulator, alert ->
             alert.ufos.forEach {
-                accumulator.add(it)
+                accumulator.add(UfoPositionTime(it.ship, it.lat, it.lon, elapsedTime()))
             }
             accumulator
         }
@@ -31,17 +34,6 @@ class AliensViewModel: ViewModel() {
         alienAlerter.startReporting()
     }
 
-    private fun activeUfoFlow(): Flow<List<UfoLatLng>> {
-        val mutableListFlow = alienAlerter.alerts.map { alert ->
-            val mutableList = mutableListOf<UfoLatLng>()
-            alert.ufos.forEach { ufoPosition ->
-                mutableList.add(UfoLatLng(ufoPosition.ship, LatLng(ufoPosition.lat, ufoPosition.lon)))
-            }
-            mutableList.toList()
-        }
-        return mutableListFlow
-    }
-
     private fun pointStoreListFlow(): Flow<List<LatLng>> {
         val mutableList = mutableListOf<LatLng>()
         val mutableListFlow = alertStore.map { ufoPositions ->
@@ -53,15 +45,15 @@ class AliensViewModel: ViewModel() {
         return mutableListFlow
     }
 
-    private fun pointStoreMapFlow(): Flow<ImmutableMap<Int, ImmutableSet<LatLng>>> {
-        val mutableStore = mutableMapOf<Int, MutableSet<LatLng>>()
+    private fun pointStoreMapFlow(): Flow<ImmutableMap<Int, ImmutableSet<Pair<Long, LatLng>>>> {
+        val mutableStore = mutableMapOf<Int, MutableSet<Pair<Long, LatLng>>>()
         val mutableStoreFlow =
             alertStore.map { alerts ->
                 alerts.forEach { alert ->
                     if (mutableStore.containsKey(alert.ship)) {
-                        mutableStore[alert.ship]?.add(LatLng(alert.lat, alert.lon))
+                        mutableStore[alert.ship]?.add(Pair(alert.time, LatLng(alert.lat, alert.lon)))
                     } else {
-                        mutableStore[alert.ship] = mutableSetOf(LatLng(alert.lat, alert.lon))
+                        mutableStore[alert.ship] = mutableSetOf(Pair(alert.time, LatLng(alert.lat, alert.lon)))
                     }
                 }
                 mutableStore
