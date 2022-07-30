@@ -21,6 +21,7 @@ class AlienAlerter(private val scope: CoroutineScope) {
     private var continuePolling = true
 
     private suspend fun emitUfos(n: Int) {
+        Log.d("boop - -", "$n")
         val response = alienApiService.getUfos(n.toString())
         if (response.code() == 404) { // more catching errors? TODO
             continuePolling = false

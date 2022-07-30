@@ -10,24 +10,28 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
-import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.compose.*
 import hwang.joy.hw5.ui.theme.HW5Theme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-
-private val googleHQ = LatLng(37.42423291057923, -122.08811454627153)
-private val defaultCameraPosition = CameraPosition.fromLatLngZoom(googleHQ, 11f)
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     private val viewModel by viewModels<AliensViewModel>()
@@ -40,35 +44,6 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colors.background
                 ) {
                     Ui(viewModel)
-
-//                    var mapLoaded by remember { mutableStateOf(false) }
-//
-//                    val cameraPositionState = rememberCameraPositionState {
-//                        position = defaultCameraPosition
-//                    }
-//
-//                    Box(modifier = Modifier.fillMaxSize()) {
-//                        GoogleMapView(
-//                            cameraPositionState = cameraPositionState,
-//                            onMapLoaded = { mapLoaded = true },
-//                            modifier = Modifier.fillMaxSize(),
-//                            place = googleHQ,
-//                        )
-//                        if (!mapLoaded) {
-//                            AnimatedVisibility(
-//                                visible = !mapLoaded,
-//                                modifier = Modifier.fillMaxSize(),
-//                                enter = EnterTransition.None,
-//                                exit = fadeOut(),
-//                            ) {
-//                                CircularProgressIndicator(
-//                                    modifier = Modifier
-//                                        .background(MaterialTheme.colors.background)
-//                                        .wrapContentSize()
-//                                )
-//                            }
-//                        }
-//                    }
                 }
             }
         }
@@ -79,24 +54,61 @@ class MainActivity : ComponentActivity() {
 fun Ui(
     viewModel: AliensViewModel,
 ) {
+    Log.d("mainActivity", "rendering UI")
+    val scope = rememberCoroutineScope()
+
     val activeUfos by viewModel.activeUfos.collectAsState(initial = emptyList())
-    val pointStore by viewModel.pointStore.collectAsState(initial = mapOf())
+    val pointStoreMap by viewModel.pointStoreMap.collectAsState(initial = mapOf())
+    val pointStoreList by viewModel.pointStoreList.collectAsState(initial = emptyList())
 
-    Log.d("cyrano activeUfos", "$activeUfos")
-    Log.d("cyrano pointStore", "$pointStore")
+    Log.d("mainActivity", "$activeUfos | $pointStoreMap | $pointStoreList ")
+    val defaultCameraPosition = CameraPosition.fromLatLngZoom(LatLng(38.9835316367249, -77.12127685546875), 20f)
+    val cameraPositionState = rememberCameraPositionState {
+        position = defaultCameraPosition
+    }
+    var mapLoaded by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Text(text="ALIENS!!!")
-
-        LaunchedEffect(Unit) {
-            Log.d("jhw", "launched effect")
-            viewModel.startAlienReporting()
+    if (pointStoreList.isNotEmpty()) {
+        var bounds: LatLngBounds? = null
+        pointStoreList.forEach { point ->
+            bounds = bounds?.including(point) ?: LatLngBounds(point, point)
         }
-
-        activeUfos.forEach {
-            Text(text="$it")
+        bounds?.let { newBounds ->
+            scope.launch {
+                Log.d("mainActivity", "moving camera")
+                cameraPositionState.animate(CameraUpdateFactory.newLatLngBounds(newBounds, 100), 1000)
+            }
         }
+    }
 
+    Box(modifier = Modifier.fillMaxSize()) {
+        GoogleMapView(
+            cameraPositionState = cameraPositionState,
+            onMapLoaded = { mapLoaded = true },
+            modifier = Modifier.fillMaxSize(),
+            ufos = activeUfos,
+            lines = pointStoreMap,
+        )
+        if (!mapLoaded) {
+            AnimatedVisibility(
+                visible = !mapLoaded,
+                modifier = Modifier.fillMaxSize(),
+                enter = EnterTransition.None,
+                exit = fadeOut(),
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .background(MaterialTheme.colors.background)
+                        .wrapContentSize()
+                )
+            }
+        } else {
+            LaunchedEffect(Unit) {
+                Log.d("mainActivity", "---------- start alien reporting")
+                viewModel.startAlienReporting()
+            }
+
+        }
     }
 }
 
@@ -104,11 +116,11 @@ fun Ui(
 fun GoogleMapView(
     cameraPositionState: CameraPositionState,
     onMapLoaded: () -> Unit,
-    place: LatLng,
     modifier: Modifier,
+    ufos: List<UfoLatLng>,
+    lines: Map<Int, ImmutableSet<LatLng>>,
 ) {
-
-    val placeState = rememberMarkerState(position = place)
+    Log.d("mainActivity", "rendering GoogleMapView")
 
     val mapUiSettings = remember {
         MapUiSettings(
@@ -119,10 +131,30 @@ fun GoogleMapView(
     val mapProperties by remember {
         mutableStateOf(MapProperties(mapType = MapType.NORMAL))
     }
+    val context = LocalContext.current
+    var ufoStates by remember { mutableStateOf(emptyList<UfoMarker>()) }
+    var ufoIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
+
+    Log.d("boop > > active", "${ufos.size}")
+    Log.d("boop * * states", "${ufoStates.size}")
+
+
+    LaunchedEffect(true) {
+        withContext(Dispatchers.IO) {
+            ufoIcon = context.loadBitmapDescriptor(R.drawable.ic_ufo_flying)
+        }
+    }
 
     LaunchedEffect(Unit) {
         delay(3000L)
         onMapLoaded()
+    }
+
+    LaunchedEffect(ufos) {
+        ufoStates = emptyList()
+        ufos.forEach { ufo ->
+            ufoStates += UfoMarker(ufo.ship, MarkerState(ufo.latlng))
+        }
     }
 
     GoogleMap(
@@ -130,28 +162,31 @@ fun GoogleMapView(
         uiSettings = mapUiSettings,
         properties = mapProperties,
         onMapLoaded = onMapLoaded,
-        modifier = Modifier,
+        modifier = Modifier
+            .fillMaxWidth()
     ) {
-        MarkerInfoWindowContent(
-            state = placeState,
-            title = "MARKER yo",
-            draggable = true,
-        )
-        Polyline(
-            points = listOf(LatLng(37.384374, -122.068712), LatLng(37.42423291057923, -122.08811454627153)),
-            color = Color.Red,
-            width = 8f,
-        )
-        Polyline(
-            points = listOf(LatLng(37.384584, -122.132241), LatLng(37.42423291057923, -122.08811454627153)),
-            color = Color.Blue,
-            width = 8f,
-        )
+        Log.d("mainActivity", "********* GoogleMap *************")
 
+        ufoStates.forEach { ufoMarker ->
+            Log.d("mainActivity", "marker!")
+            MarkerInfoWindowContent(
+                state = ufoMarker.state,
+                icon = ufoIcon,
+                anchor = Offset(0.5f, 0.5f),
+                title = "Ship ${ufoMarker.ship}",
+                draggable = false,
+            )
+        }
 
-
-
+        lines.forEach { ufo ->
+            val ufoLines = ufo.value
+            if (ufoLines.size > 1) {
+                Polyline(
+                    points = ufoLines.toList(),
+                    color = Color.Blue,
+                    width = 5f,
+                )
+            }
+        }
     }
-    
-
 }

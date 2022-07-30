@@ -1,6 +1,7 @@
 package hwang.joy.hw5
 import androidx.compose.runtime.Immutable
 import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.MarkerState
 
 @Immutable
 data class ImmutableList<T>(val list: List<T>): List<T> by list
@@ -25,19 +26,15 @@ data class AlienAlert(
     val ufos: List<UfoPosition> = emptyList()
 )
 
+data class UfoLatLng(
+    val ship: Int,
+    val latlng: LatLng,
+)
 
-
-//data class PointStore(
-//    val store: MutableMap<Int, MutableList<LatLng>>
-//) {
-//    fun initializeStore() {
-//
-//    }
-//
-//    fun updateStore() {
-//
-//    }
-//}
+class UfoMarker(
+    val ship: Int,
+    val state: MarkerState,
+)
 
 class UfoLines(ufos: List<UfoPosition> = emptyList()) {
     private val _lines = mutableMapOf<Int, MutableList<Pair<Double, Double>>>()
