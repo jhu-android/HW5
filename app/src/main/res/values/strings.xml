@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">HW5</string>
+    <string name="ship_title">Ship %1$s</string>
 </resources>

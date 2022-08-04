@@ -1,7 +1,6 @@
 package hwang.joy.hw5
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -19,8 +18,8 @@ import androidx.compose.material.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.CameraPosition
@@ -32,6 +31,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private val startingCameraPosition = LatLng(38.9835316367249, -77.12127685546875)
 
 class MainActivity : ComponentActivity() {
     private val viewModel by viewModels<AliensViewModel>()
@@ -54,31 +55,23 @@ class MainActivity : ComponentActivity() {
 fun Ui(
     viewModel: AliensViewModel,
 ) {
-    val alertStore by viewModel.alertStore.collectAsState(initial = emptyList())
-    Log.d("halp", "$alertStore")
-    
-    Log.d("mainActivity", "rendering UI")
     val scope = rememberCoroutineScope()
-
     val activeUfos by viewModel.activeUfos.collectAsState(initial = emptyList())
-    val pointStoreMap by viewModel.pointStoreMap.collectAsState(initial = mapOf())
-    val pointStoreList by viewModel.pointStoreList.collectAsState(initial = emptyList())
-
-    Log.d("mainActivity", "$activeUfos | $pointStoreMap | $pointStoreList ")
-    val defaultCameraPosition = CameraPosition.fromLatLngZoom(LatLng(38.9835316367249, -77.12127685546875), 20f)
+    val historicalSightings by viewModel.historicalSightings.collectAsState(initial = mapOf())
+    val defaultCameraPosition = CameraPosition.fromLatLngZoom(startingCameraPosition, 20f)
     val cameraPositionState = rememberCameraPositionState {
         position = defaultCameraPosition
     }
     var mapLoaded by remember { mutableStateOf(false) }
 
-    if (pointStoreList.isNotEmpty()) {
+    if (historicalSightings.isNotEmpty()) {
         var bounds: LatLngBounds? = null
-        pointStoreList.forEach { point ->
+        val sightingsList = getPointsAsList(historicalSightings)
+        sightingsList.forEach { point ->
             bounds = bounds?.including(point) ?: LatLngBounds(point, point)
         }
         bounds?.let { newBounds ->
             scope.launch {
-                Log.d("mainActivity", "moving camera")
                 cameraPositionState.animate(CameraUpdateFactory.newLatLngBounds(newBounds, 100), 1000)
             }
         }
@@ -88,9 +81,8 @@ fun Ui(
         GoogleMapView(
             cameraPositionState = cameraPositionState,
             onMapLoaded = { mapLoaded = true },
-            modifier = Modifier.fillMaxSize(),
             ufos = activeUfos,
-            lines = pointStoreMap,
+            sightings = historicalSightings,
         )
         if (!mapLoaded) {
             AnimatedVisibility(
@@ -107,7 +99,6 @@ fun Ui(
             }
         } else {
             LaunchedEffect(Unit) {
-                Log.d("mainActivity", "---------- start alien reporting")
                 viewModel.startAlienReporting()
             }
 
@@ -119,11 +110,10 @@ fun Ui(
 fun GoogleMapView(
     cameraPositionState: CameraPositionState,
     onMapLoaded: () -> Unit,
-    modifier: Modifier,
-    ufos: List<UfoLatLng>,
-    lines: Map<Int, ImmutableSet<Pair<Long, LatLng>>>,
+    ufos: List<UfoPositionLatlng>,
+    sightings: Map<Int, ImmutableSet<UfoSighting>>,
 ) {
-    Log.d("mainActivity", "rendering GoogleMapView")
+    Modifier.fillMaxWidth()
 
     val mapUiSettings = remember {
         MapUiSettings(
@@ -137,10 +127,6 @@ fun GoogleMapView(
     val context = LocalContext.current
     var ufoStates by remember { mutableStateOf(emptyList<UfoMarker>()) }
     var ufoIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
-
-    Log.d("boop > > active", "${ufos.size}")
-    Log.d("boop * * states", "${ufoStates.size}")
-
 
     LaunchedEffect(true) {
         withContext(Dispatchers.IO) {
@@ -168,22 +154,19 @@ fun GoogleMapView(
         modifier = Modifier
             .fillMaxWidth()
     ) {
-        Log.d("mainActivity", "********* GoogleMap *************")
-
         ufoStates.forEach { ufoMarker ->
-            Log.d("mainActivity", "marker!")
             MarkerInfoWindowContent(
                 state = ufoMarker.state,
                 icon = ufoIcon,
                 anchor = Offset(0.5f, 0.5f),
-                title = "Ship ${ufoMarker.ship}",
+                title = stringResource(R.string.ship_title, "${ufoMarker.ship}"),
                 draggable = false,
             )
         }
 
-        lines.forEach { ufo ->
-            if (ufo.value.size > 1) {
-                val ufoLines = ufo.value.map { it.second }
+        sightings.forEach { ufoSightings ->
+            if (ufoSightings.value.size > 1) {
+                val ufoLines = ufoSightings.value.map { it.place }
                 Polyline(
                     points = ufoLines,
                     color = MaterialTheme.colors.primaryVariant,
